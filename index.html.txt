@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spesa Smart</title>
+
+  <!-- Manifest PWA -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#2E7D32">
+
+  <!-- Stili base -->
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: #f4f4f4;
+    }
+    h1 {
+      text-align: center;
+      color: #2E7D32;
+      margin-top: 0;
+    }
+    h3 {
+      margin-top: 20px;
+      margin-bottom: 10px;
+    }
+    input, select, button {
+      padding: 8px;
+      margin: 5px 0;
+      width: 100%;
+      box-sizing: border-box;
+      font-size: 14px;
+    }
+    button {
+      background: #2E7D32;
+      color: #ffffff;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover {
+      opacity: 0.9;
+    }
+    .danger {
+      background: #c62828;
+    }
+    .item {
+      background: #ffffff;
+      padding: 10px;
+      margin: 5px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-radius: 4px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .item-info {
+      flex: 1;
+      margin-right: 10px;
+      font-size: 14px;
+    }
+    .item.checked {
+      text-decoration: line-through;
+      opacity: 0.5;
+    }
+    .item strong {
+      font-size: 15px;
+    }
+    small {
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+  <h1>Spesa Smart</h1>
+
+  <h3>Aggiungi prodotto</h3>
+  <input id="marca" placeholder="Marca">
+  <input id="prodotto" placeholder="Prodotto">
+  <input id="quantita" placeholder="Quantità">
+  <select id="categoria">
+    <option>Verdura</option>
+    <option>Frutta</option>
+    <option>Affettati</option>
+    <option>Formaggi</option>
+    <option>Carne</option>
+    <option>Pesce</option>
+    <option>Pane</option>
+    <option>Altro</option>
+  </select>
+  <button onclick="aggiungi()">Aggiungi</button>
+
+  <h3>Lista Spesa</h3>
+  <button class="danger" onclick="nuovaSpesa()">Nuova Spesa</button>
+
+  <div id="lista"></div>
+
+  <script>
+    let lista = JSON.parse(localStorage.getItem('lista')) || [];
+    let ordine = JSON.parse(localStorage.getItem('ordine')) || {};
+    let contatoreOrdine = Object.keys(ordine).length;
+
+    function nuovaSpesa() {
+      if (confirm('Vuoi iniziare una nuova spesa? La lista attuale verrà cancellata.')) {
+        lista = [];
+        ordine = {};
+        contatoreOrdine = 0;
+        localStorage.setItem('lista', JSON.stringify(lista));
+        localStorage.setItem('ordine', JSON.stringify(ordine));
+        render();
+      }
+    }
+
+    function salva() {
+      localStorage.setItem('lista', JSON.stringify(lista));
+      localStorage.setItem('ordine', JSON.stringify(ordine));
+    }
+
+    function aggiungi() {
+      const marca = document.getElementById('marca').value.trim();
+      const prodotto = document.getElementById('prodotto').value.trim();
+      const quantita = document.getElementById('quantita').value.trim();
+      const categoria = document.getElementById('categoria').value;
+
+      if (!prodotto) {
+        return;
+      }
+
+      lista.push({
+        marca,
+        prodotto,
+        quantita,
+        categoria,
+        preso: false
+      });
+
+      if (!ordine[prodotto]) {
+        ordine[prodotto] = contatoreOrdine++;
+      }
+
+      salva();
+      pulisciCampi();
+      render();
+    }
+
+    function pulisciCampi() {
+      document.getElementById('marca').value = '';
+      document.getElementById('prodotto').value = '';
+      document.getElementById('quantita').value = '';
+      document.getElementById('categoria').value = 'Verdura';
+    }
+
+    function toggle(index) {
+      lista[index].preso = !lista[index].preso;
+      if (lista[index].preso && !ordine[lista[index].prodotto]) {
+        ordine[lista[index].prodotto] = contatoreOrdine++;
+      }
+      salva();
+      render();
+    }
+
+    function riordina() {
+      lista.sort((a, b) => {
+        const oa = ordine[a.prodotto] ?? 9999;
+        const ob = ordine[b.prodotto] ?? 9999;
+        return oa - ob;
+      });
+    }
+
+    function render() {
+      const div = document.getElementById('lista');
+      div.innerHTML = '';
+      riordina();
+
+      lista.forEach((item, index) => {
+        const el = document.createElement('div');
+        el.className = 'item';
+        if (item.preso) {
+          el.classList.add('checked');
+        }
+
+        el.innerHTML = `
+          <div class="item-info">
+            <div><strong>${item.prodotto}</strong> ${item.marca ? ' - ' + item.marca : ''}</div>
+            <div>Quantità: ${item.quantita || '-'}</div>
+            <div><small>${item.categoria}</small></div>
+          </div>
+          <div>
+            <input type="checkbox" ${item.preso ? 'checked' : ''} onclick="toggle(${index})">
+          </div>
+        `;
+
+        div.appendChild(el);
+      });
+    }
+
+    render();
+
+    // Registrazione Service Worker per PWA
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('service-worker.js')
+          .catch(err => console.error('Service Worker error:', err));
+      });
+    }
+  </script>
+</body>
+</html>
