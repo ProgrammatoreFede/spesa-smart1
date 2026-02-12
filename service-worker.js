@@ -1,4 +1,4 @@
-const CACHE_NAME = 'spesa-store-v1';
+const CACHE_NAME = 'spesa-smart1-v1';
 const FILES_TO_CACHE = [
   '/spesa-smart/',
   '/spesa-smart/index.html',
@@ -36,3 +36,4 @@ self.addEventListener('fetch', event => {
     })
   );
 });
+
